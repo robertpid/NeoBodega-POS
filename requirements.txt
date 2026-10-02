@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+httpx
+feedparser
+pandas
+mlxtend
+xgboost
+scikit-learn
+google-generativeai
+python-dotenv
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+slowapi

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - POS MVP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        /* Animaciones para SPA feeling */
+        .view-section { display: none; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(15px); }
+        .view-section.active { display: block; }
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+        
+        /* Glass y Sombras Premium */
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255,255,255,0.4); 
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05);
+        }
+        
+        /* Scrollbar estilizado */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-800">
+
+    <!-- Sidebar Navegación Lateral -->
+    <aside class="w-64 bg-[#0f172a] text-slate-300 flex flex-col transition-all duration-300 shadow-2xl z-20 relative">
+        <div class="h-20 flex items-center justify-center border-b border-slate-800/50">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-lg shadow-lg flex items-center justify-center text-white text-sm">🛍️</div>
+                <h1 class="text-xl font-bold tracking-tight text-white">Smart POS</h1>
+            </div>
+        </div>
+        
+        <nav class="flex-1 py-8 px-4 space-y-2">
+            <p class="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Principal</p>
+            
+            <button onclick="navigate('dashboard')" class="nav-btn active w-full flex items-center space-x-3 px-4 py-3 rounded-xl bg-indigo-600/10 text-indigo-400 font-medium transition-all hover:bg-indigo-600/20">
+                <span class="text-xl opacity-80">📊</span><span>Visión General</span>
+            </button>
+            <button onclick="navigate('pos')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition-all">
+                <span class="text-xl opacity-80">🛒</span><span>Caja Rápida</span>
+            </button>
+            <button onclick="navigate('inventory')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition-all">
+                <span class="text-xl opacity-80">📦</span><span>Inventario</span>
+            </button>
+            
+            <p class="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-8 mb-4">Administración</p>
+            
+            <button onclick="navigate('users')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition-all">
+                <span class="text-xl opacity-80">👥</span><span>Personal</span>
+            </button>
+            <button onclick="navigate('crm')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition-all">
+                <span class="text-xl opacity-80">💬</span><span>CRM Inteligente</span>
+            </button>
+        </nav>
+        
+        <div class="p-6 border-t border-slate-800/50">
+            <button onclick="logout()" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl hover:bg-red-500/10 text-red-400 font-medium transition-colors">
+                <span class="opacity-80">🚪</span><span>Cerrar Sesión</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Área de Contenido Principal -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto bg-[#f8fafc] relative scroll-smooth">
+        
+        <!-- Header Superior -->
+        <header class="h-20 bg-white/70 backdrop-blur-lg border-b border-slate-200/50 flex items-center justify-between px-10 z-10 sticky top-0">
+            <h2 id="page-title" class="text-2xl font-bold text-slate-800 tracking-tight">Visión General</h2>
+            <div class="flex items-center space-x-4 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 cursor-pointer hover:shadow-md transition-shadow">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-white font-bold text-sm">A</div>
+                <div class="flex flex-col">
+                    <span class="text-sm font-semibold leading-tight text-slate-700" id="userNameDisplay">Admin</span>
+                    <span class="text-xs text-slate-400 leading-tight">Superusuario</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Contenedor Dinámico de Vistas -->
+        <div class="p-10 max-w-7xl mx-auto w-full">
+            
+            <!-- VISTA: DASHBOARD -->
+            <section id="view-dashboard" class="view-section active space-y-8">
+                <!-- Tarjetas de Métricas -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Ingresos -->
+                    <div class="glass-card rounded-3xl p-6 hover:-translate-y-1.5 transition-transform duration-300">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-slate-500 font-semibold text-sm tracking-wide">INGRESOS DE HOY</h3>
+                                <p class="text-4xl font-extrabold text-slate-800 mt-2" id="metric-income"><span class="text-2xl text-slate-400">S/</span> --</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl shadow-sm">💰</div>
+                        </div>
+                        <div class="mt-4 flex items-center text-sm">
+                            <span class="text-emerald-500 font-medium flex items-center">↑ Cierre Dinámico</span>
+                            <span class="text-slate-400 ml-2">vía SQLite</span>
+                        </div>
+                    </div>
+
+                    <!-- CRM Pendientes -->
+                    <div class="glass-card rounded-3xl p-6 hover:-translate-y-1.5 transition-transform duration-300">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-slate-500 font-semibold text-sm tracking-wide">HITL CRM (PENDIENTES)</h3>
+                                <p class="text-4xl font-extrabold text-slate-800 mt-2" id="metric-crm">--</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl shadow-sm">💬</div>
+                        </div>
+                        <div class="mt-4 flex items-center text-sm">
+                            <span class="text-indigo-500 font-medium">Borradores de IA</span>
+                            <span class="text-slate-400 ml-2">por aprobar</span>
+                        </div>
+                    </div>
+
+                    <!-- Alertas -->
+                    <div class="glass-card rounded-3xl p-6 hover:-translate-y-1.5 transition-transform duration-300 relative overflow-hidden">
+                        <div class="absolute -right-6 -top-6 w-24 h-24 bg-amber-50 rounded-full z-0"></div>
+                        <div class="flex justify-between items-start relative z-10">
+                            <div>
+                                <h3 class="text-slate-500 font-semibold text-sm tracking-wide">RIESGOS DE MERCADO</h3>
+                                <p class="text-4xl font-extrabold text-slate-800 mt-2" id="metric-alerts">0</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl shadow-sm">⚠️</div>
+                        </div>
+                        <div class="mt-4 flex items-center text-sm relative z-10">
+                            <span class="text-amber-600 font-medium">Análisis RSS</span>
+                            <span class="text-slate-400 ml-2">estable</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico Chart.js -->
+                <div class="glass-card rounded-3xl p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-slate-800">Tendencia de Ventas (Semana)</h3>
+                        <span class="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-xs font-semibold">Predicción XGBoost Activa</span>
+                    </div>
+                    <div class="relative h-80 w-full">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VISTA: USUARIOS -->
+            <section id="view-users" class="view-section">
+                <div class="glass-card rounded-3xl p-8">
+                    <div class="flex justify-between items-center mb-8">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800">Personal Autorizado</h3>
+                            <p class="text-sm text-slate-500 mt-1">Gestión de accesos y roles (RBAC).</p>
+                        </div>
+                        <button onclick="openUserModal()" class="bg-slate-900 hover:bg-indigo-600 text-white px-5 py-2.5 rounded-xl shadow-lg font-semibold transition-all hover:shadow-indigo-500/30 flex items-center space-x-2">
+                            <span>+ Nuevo Usuario</span>
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto rounded-2xl border border-slate-100">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-widest border-b border-slate-100">
+                                    <th class="p-5 font-semibold">ID</th>
+                                    <th class="p-5 font-semibold">Usuario</th>
+                                    <th class="p-5 font-semibold">Nivel de Acceso</th>
+                                    <th class="p-5 font-semibold text-right">Administrar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body" class="divide-y divide-slate-50 bg-white">
+                                <!-- Las filas se inyectan dinámicamente con JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VISTA: INVENTARIO -->
+            <section id="view-inventory" class="view-section">
+                <div class="glass-card rounded-3xl p-8">
+                    <div class="flex justify-between items-center mb-8">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800">Catálogo de Productos</h3>
+                            <p class="text-sm text-slate-500 mt-1">Gestión de stock, precios y predicciones del ML.</p>
+                        </div>
+                        <button onclick="openProductModal()" class="bg-slate-900 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl shadow-lg font-semibold transition-all hover:shadow-emerald-500/30 flex items-center space-x-2">
+                            <span>+ Nuevo Producto</span>
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto rounded-2xl border border-slate-100">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-widest border-b border-slate-100">
+                                    <th class="p-5 font-semibold">Producto</th>
+                                    <th class="p-5 font-semibold">Código</th>
+                                    <th class="p-5 font-semibold text-center">Stock</th>
+                                    <th class="p-5 font-semibold">Precio (S/)</th>
+                                    <th class="p-5 font-semibold">Sugerencia IA</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table-body" class="divide-y divide-slate-50 bg-white">
+                                <!-- Filas JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VISTA: CAJA -->
+            <section id="view-pos" class="view-section">
+                <div class="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)]">
+                    
+                    <!-- Panel Izquierdo: Carrito y Cobro -->
+                    <div class="glass-card rounded-3xl p-6 flex flex-col w-full lg:w-1/3 shadow-xl">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-slate-800">Caja Registradora</h3>
+                            <button onclick="clearCart()" class="text-sm text-red-400 hover:text-red-600 bg-red-50 px-3 py-1 rounded-lg">Vaciar</button>
+                        </div>
+                        
+                        <!-- Lista de items en el carrito -->
+                        <div class="flex-1 overflow-y-auto border border-slate-100 rounded-xl bg-slate-50 p-2 space-y-2" id="cart-items">
+                            <!-- Items inyectados via JS -->
+                        </div>
+                        
+                        <!-- Totales -->
+                        <div class="mt-4 pt-4 border-t border-slate-200">
+                            <div class="flex justify-between text-slate-500 mb-2 font-medium">
+                                <span>Subtotal</span>
+                                <span id="cart-subtotal">S/ 0.00</span>
+                            </div>
+                            <div class="flex justify-between text-2xl font-black text-slate-800 mb-4">
+                                <span>Total</span>
+                                <span id="cart-total" class="text-indigo-600">S/ 0.00</span>
+                            </div>
+                            <button onclick="openCheckoutModal()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transform transition hover:scale-[1.02] text-lg flex items-center justify-center space-x-2">
+                                <span>Cobrar</span>
+                                <span>💰</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Panel Derecho: Escáner y Productos a Granel -->
+                    <div class="glass-card rounded-3xl p-6 flex flex-col w-full lg:w-2/3 shadow-xl">
+                        <!-- Lector de código de barras -->
+                        <div class="relative mb-8">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-2xl">
+                                📷
+                            </div>
+                            <input type="text" id="barcodeInput" class="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-indigo-100 bg-white focus:bg-indigo-50 focus:border-indigo-400 focus:ring-0 outline-none text-lg font-mono text-slate-700 shadow-sm transition-all" placeholder="Escanea el código de barras aquí..." autocomplete="off">
+                            <p class="text-xs text-slate-400 mt-2 ml-2">El cursor debe estar aquí para que el escáner físico funcione automáticamente.</p>
+                        </div>
+                        
+                        <!-- Productos a Granel (Sin código) -->
+                        <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Productos a Granel / Sin Código</h4>
+                        <div id="bulk-products-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 overflow-y-auto pb-4">
+                            <!-- Productos a granel inyectados por JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+    <!-- MODAL: Checkout / Pagos -->
+    <div id="checkoutModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 transition-opacity duration-300 opacity-0">
+        <div class="bg-white rounded-[2rem] p-8 shadow-2xl w-[500px] transform scale-95 transition-all duration-300" id="checkoutModalContent">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800">Procesar Pago</h3>
+                <button onclick="closeCheckoutModal()" class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 w-8 h-8 rounded-full flex items-center justify-center transition-colors">✕</button>
+            </div>
+            
+            <div class="text-center mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <p class="text-sm text-slate-500 uppercase tracking-wider font-semibold">Monto a Cobrar</p>
+                <p class="text-5xl font-black text-indigo-600 mt-2" id="checkout-total">S/ 0.00</p>
+            </div>
+
+            <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Método de Pago</p>
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <button onclick="processPayment('Efectivo')" class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 hover:bg-emerald-100 transition-colors group">
+                    <span class="text-3xl mb-1 group-hover:scale-110 transition-transform">💵</span>
+                    <span class="font-bold text-emerald-700">Efectivo</span>
+                </button>
+                <button onclick="processPayment('Tarjeta')" class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-blue-500 bg-blue-50 hover:bg-blue-100 transition-colors group">
+                    <span class="text-3xl mb-1 group-hover:scale-110 transition-transform">💳</span>
+                    <span class="font-bold text-blue-700">Tarjeta (POS)</span>
+                </button>
+                <button onclick="processPayment('Yape')" class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-purple-500 bg-purple-50 hover:bg-purple-100 transition-colors group">
+                    <span class="text-3xl mb-1 group-hover:scale-110 transition-transform">📱</span>
+                    <span class="font-bold text-purple-700">Yape</span>
+                </button>
+                <button onclick="processPayment('Híbrido')" class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-slate-400 bg-slate-50 hover:bg-slate-100 transition-colors group">
+                    <span class="text-3xl mb-1 group-hover:scale-110 transition-transform">🔀</span>
+                    <span class="font-bold text-slate-600">Mixto (Híbrido)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Cantidad a Granel -->
+    <div id="bulkModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 transition-opacity duration-300 opacity-0">
+        <div class="bg-white rounded-[2rem] p-8 shadow-2xl w-[400px] transform scale-95 transition-all duration-300 text-center" id="bulkModalContent">
+            <div class="w-20 h-20 bg-gradient-to-tr from-emerald-100 to-teal-100 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 shadow-inner" id="bulkModalIcon">⚖️</div>
+            <h3 class="text-2xl font-bold text-slate-800" id="bulkModalTitle">Ingresar Cantidad</h3>
+            <p class="text-slate-500 mt-2 mb-6 text-sm" id="bulkModalDesc">Indica el peso en KG o las unidades según corresponda al producto.</p>
+            
+            <div class="mb-4 text-left">
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Precio por Kg o Unidad (S/)</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">S/</span>
+                    <input type="number" step="0.01" id="bulkPriceInput" value="0.00" class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none text-xl font-bold text-slate-700">
+                </div>
+            </div>
+
+            <div class="mb-2 text-left">
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Cantidad (Kg o Unidades)</label>
+            </div>
+            <div class="flex items-center justify-center space-x-6 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <button onclick="changeBulkQty(-1)" class="w-12 h-12 rounded-full bg-white shadow hover:bg-slate-100 text-slate-600 text-2xl font-bold transition-transform hover:scale-105 active:scale-95">-</button>
+                <input type="number" step="0.01" id="bulkQtyInput" value="1" class="w-24 text-center text-4xl font-black text-emerald-600 bg-transparent border-none focus:ring-0 outline-none p-0">
+                <button onclick="changeBulkQty(1)" class="w-12 h-12 rounded-full bg-white shadow hover:bg-slate-100 text-slate-600 text-2xl font-bold transition-transform hover:scale-105 active:scale-95">+</button>
+            </div>
+
+            <div class="flex space-x-3 mt-8">
+                <button onclick="closeBulkModal()" class="flex-1 px-4 py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">Cancelar</button>
+                <button onclick="confirmBulkItem()" class="flex-1 px-4 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all">Añadir 🛒</button>
+            </div>
+        </div>
+    </div>
+
+            <!-- VISTA: CRM -->
+            <section id="view-crm" class="view-section">
+                <div class="glass-card rounded-3xl p-16 flex flex-col items-center justify-center text-center h-[60vh] border-dashed border-2 border-slate-200 bg-slate-50/50">
+                    <div class="w-24 h-24 bg-white rounded-full shadow-lg flex items-center justify-center mb-6">
+                        <span class="text-4xl text-indigo-500">💬</span>
+                    </div>
+                    <h3 class="text-3xl font-extrabold text-slate-800 mb-2">Centro de Aprobación HITL</h3>
+                    <p class="text-slate-500 max-w-md">Aquí verás y aprobarás los mensajes redactados por la Inteligencia Artificial (Gemini) antes de enviarlos por WhatsApp.</p>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- MODAL: Agregar Usuario -->
+    <div id="userModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 transition-opacity duration-300 opacity-0">
+        <div class="bg-white rounded-[2rem] p-8 shadow-2xl w-[400px] transform scale-95 transition-all duration-300" id="userModalContent">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800">Crear Credencial</h3>
+                <button onclick="closeUserModal()" class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 w-8 h-8 rounded-full flex items-center justify-center transition-colors">✕</button>
+            </div>
+            
+            <form id="addUserForm" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-semibold tracking-wider text-slate-500 uppercase mb-2">Nombre de Usuario</label>
+                    <input type="text" id="newUsername" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold tracking-wider text-slate-500 uppercase mb-2">Contraseña de Acceso</label>
+                    <input type="password" id="newPassword" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold tracking-wider text-slate-500 uppercase mb-2">Asignación de Rol</label>
+                    <div class="relative">
+                        <select id="newRole" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none">
+                            <option value="cajero">Cajero (Solo POS)</option>
+                            <option value="admin">Administrador (Total)</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">▼</div>
+                    </div>
+                </div>
+                <button type="submit" class="w-full mt-4 py-3.5 bg-slate-900 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-600 transition-colors">
+                    Autorizar Usuario
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Agregar Producto -->
+    <div id="productModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 transition-opacity duration-300 opacity-0">
+        <div class="bg-white rounded-[2rem] p-8 shadow-2xl w-[400px] transform scale-95 transition-all duration-300" id="productModalContent">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800">Nuevo Producto</h3>
+                <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 w-8 h-8 rounded-full flex items-center justify-center transition-colors">✕</button>
+            </div>
+            
+            <form id="addProductForm" class="space-y-4">
+                <div class="flex items-center space-x-4 mb-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                    <label class="flex items-center space-x-2 cursor-pointer flex-1 justify-center">
+                        <input type="radio" name="prodType" value="unit" checked class="form-radio text-emerald-500 w-4 h-4" onchange="toggleProductType()">
+                        <span class="text-sm font-semibold text-slate-700">Stock / Unidad</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer flex-1 justify-center">
+                        <input type="radio" name="prodType" value="bulk" class="form-radio text-emerald-500 w-4 h-4" onchange="toggleProductType()">
+                        <span class="text-sm font-semibold text-slate-700">A Granel (Peso)</span>
+                    </label>
+                </div>
+                <div id="barcodeContainer">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Código de Barras</label>
+                    <input type="text" id="prodBarcode" required class="w-full px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Nombre</label>
+                    <input type="text" id="prodName" required class="w-full px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+                <div class="flex space-x-4">
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Precio</label>
+                        <input type="number" step="0.1" id="prodPrice" required class="w-full px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Stock</label>
+                        <input type="number" id="prodStock" required class="w-full px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </div>
+                </div>
+                <button type="submit" class="w-full mt-4 py-3.5 bg-slate-900 text-white rounded-xl font-bold shadow-lg hover:bg-emerald-600 transition-colors">
+                    Guardar Producto
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Editar Producto -->
+    <div id="editProductModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 transition-opacity duration-300 opacity-0">
+        <div class="bg-white rounded-[2rem] p-8 shadow-2xl w-[400px] transform scale-95 transition-all duration-300" id="editProductModalContent">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-slate-800">Editar Inventario</h3>
+                <button onclick="closeEditProductModal()" class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 w-8 h-8 rounded-full flex items-center justify-center transition-colors">✕</button>
+            </div>
+            
+            <form id="editProductForm" class="space-y-4">
+                <input type="hidden" id="editProdId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Nombre</label>
+                    <input type="text" id="editProdName" disabled class="w-full px-4 py-2 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 outline-none cursor-not-allowed">
+                </div>
+                <div class="flex space-x-4">
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Precio (S/)</label>
+                        <input type="number" step="0.01" id="editProdPrice" required class="w-full px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Stock Actual</label>
+                        <input type="number" step="0.01" id="editProdStock" required class="w-full px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none">
+                    </div>
+                </div>
+                <button type="submit" class="w-full mt-4 py-3.5 bg-amber-500 text-white rounded-xl font-bold shadow-lg hover:bg-amber-600 transition-colors">
+                    Actualizar Cambios
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- UI ALERTS (Toasts) -->
+    <div id="toast" class="fixed bottom-8 right-8 bg-slate-800 text-white px-6 py-4 rounded-2xl shadow-2xl transform translate-y-24 opacity-0 transition-all duration-300 z-50 flex items-center space-x-3">
+        <span id="toastIcon" class="text-xl">✅</span>
+        <span id="toastMsg" class="font-medium text-sm">Operación exitosa</span>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
